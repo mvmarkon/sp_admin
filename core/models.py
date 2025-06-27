@@ -7,6 +7,7 @@ class TimeStampedModel(models.Model):
     Abstract base class that provides self-updating
     'created_at' and 'updated_at' fields.
     """
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -18,6 +19,7 @@ class SoftDeleteModel(models.Model):
     """
     Abstract base class that provides soft delete functionality.
     """
+
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
@@ -52,5 +54,6 @@ class BaseModel(TimeStampedModel, SoftDeleteModel):
     """
     Base model that combines timestamp and soft delete functionality.
     """
+
     class Meta:
         abstract = True

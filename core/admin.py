@@ -6,9 +6,10 @@ class BaseModelAdmin(admin.ModelAdmin):
     Base admin class with common configurations for models
     that inherit from BaseModel.
     """
-    readonly_fields = ('created_at', 'updated_at', 'deleted_at')
-    list_filter = ('created_at', 'updated_at', 'is_deleted')
-    
+
+    readonly_fields = ("created_at", "updated_at", "deleted_at")
+    list_filter = ("created_at", "updated_at", "is_deleted")
+
     def get_queryset(self, request):
         """
         Override to show only non-deleted objects by default.
@@ -29,7 +30,7 @@ class BaseModelAdmin(admin.ModelAdmin):
         for obj in queryset:
             obj.delete()
 
-    actions = ['restore_objects']
+    actions = ["restore_objects"]
 
     def restore_objects(self, request, queryset):
         """
@@ -40,10 +41,7 @@ class BaseModelAdmin(admin.ModelAdmin):
             if obj.is_deleted:
                 obj.restore()
                 count += 1
-        
-        self.message_user(
-            request,
-            f'{count} objetos restaurados exitosamente.'
-        )
-    
+
+            self.message_user(request, f"{count} objetos restaurados exitosamente.")
+
     restore_objects.short_description = "Restaurar objetos seleccionados"
