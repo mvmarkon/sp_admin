@@ -70,6 +70,9 @@ WSGI_APPLICATION = "sp_admin.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+import dj_database_url
+
+# Opción 1: Configuración tradicional (como respaldo)
 DATABASES = {
     "default": {
         "ENGINE": config("DB_ENGINE", default="django.db.backends.sqlite3"),
@@ -80,6 +83,21 @@ DATABASES = {
         "PORT": config("DB_PORT", default=""),
     }
 }
+
+# Opción 2: Usar dj-database-url para una configuración más robusta
+# Si existe DATABASE_URL en las variables de entorno, esta configuración tiene prioridad
+database_url = config(
+    "DATABASE_URL",
+    default=f"postgresql://{config('DB_USER')}:{config('DB_PASSWORD')}@{config('DB_HOST')}:{config('DB_PORT')}/{config('DB_NAME')}",
+)
+db_config = dj_database_url.parse(database_url)
+
+# Añadir opciones SSL para conexiones seguras a Supabase
+db_config["OPTIONS"] = {
+    "sslmode": config("DB_SSLMODE", default="require"),
+}
+
+DATABASES["default"].update(db_config)
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -173,6 +191,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",
     "http://127.0.0.1:8080",
     "http://localhost:5173",
+    "https://cbglpcxtgsbugujghhhp.supabase.co",  # URL de tu proyecto Supabase
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -212,6 +231,12 @@ LOGGING = {
             "class": "logging.StreamHandler",
             "formatter": "simple",
         },
+        "db_file": {
+            "level": "DEBUG",
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "logs" / "db.log",
+            "formatter": "verbose",
+        },
     },
     "root": {
         "handlers": ["console"],
@@ -221,6 +246,11 @@ LOGGING = {
         "django": {
             "handlers": ["file", "console"],
             "level": "INFO",
+            "propagate": False,
+        },
+        "django.db.backends": {
+            "handlers": ["db_file"],
+            "level": "DEBUG" if DEBUG else "INFO",
             "propagate": False,
         },
         "products": {
