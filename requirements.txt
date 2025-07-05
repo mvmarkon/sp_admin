@@ -11,3 +11,4 @@ gunicorn
 pre-commit
 flake8
 black
+dj-database-url
