@@ -105,13 +105,22 @@ if (
     and sys.argv[1] == "test_coverage"
     or config("CI_CD", default="false", cast=bool)
 ):
-    DATABASES["default"] = {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": ":memory:",  # Use an in-memory SQLite database for tests
+    DATABASES = {
+        "default": {
+            "ENGINE": config("DB_ENGINE", default="django.db.backends.sqlite3"),
+            "NAME": config("DB_NAME", default=BASE_DIR / "db.sqlite3"),
+            "USER": config("DB_USER", default=""),
+            "PASSWORD": config("DB_PASSWORD", default=""),
+            "HOST": config("DB_HOST", default=""),
+            "PORT": config("DB_PORT", default=""),
+        }
     }
 else:
     # Default database configuration (for development/production)
-    database_url = f"postgresql://{config('DB_USER')}:{config('DB_PASSWORD')}@{config('DB_HOST')}:{config('DB_PORT')}/{config('DB_NAME')}"
+    database_url = config(
+        "DATABASE_URL",
+        default=f"postgresql://{config('DB_USER', default='usrname')}:{config('DB_PASSWORD', default='password')}@{config('DB_HOST', default='localhost')}:{config('DB_PORT', default='5432')}/{config('DB_NAME', default='dbname')}",
+    )
     DATABASES = {
         "default": dj_database_url.config(
             default=database_url,
