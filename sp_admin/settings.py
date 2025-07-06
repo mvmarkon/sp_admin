@@ -109,14 +109,18 @@ if (
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": ":memory:",
     }
+    print("===================PASO POR TEST Y/O COVERAGE===================")
 # Priority 2: File-based SQLite for CI/CD
 elif config("CI_CD", default="false", cast=bool):
     DATABASES["default"] = {
         "ENGINE": config("DB_ENGINE", default="django.db.backends.sqlite3"),
         "NAME": config("DB_NAME", default=BASE_DIR / "db.sqlite3"),
     }
+    print("===================PASO POR CI_CD===================")
+
 # Priority 3: PostgreSQL for development/production
 else:
+    print("===================PASO POR ACA===================")
 
     # Default database configuration (for development/production)
     DATABASES["default"] = dj_database_url.config(
@@ -129,6 +133,7 @@ else:
             "sslmode": config("DB_SSLMODE", default="require"),
         }
 
+print(DATABASES["default"])
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 AUTH_PASSWORD_VALIDATORS = [
