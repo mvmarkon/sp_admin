@@ -98,43 +98,36 @@ DATABASES = {}
 # Override database configuration for tests
 # This block should be placed after the default DATABASES definition
 # and will be used when running tests.
+# Priority 1: In-memory SQLite for Django's test commands
 if (
     len(sys.argv) > 1
     and sys.argv[1] == "test"
     or len(sys.argv) > 1
     and sys.argv[1] == "test_coverage"
-    or config("CI_CD", default="false", cast=bool)
 ):
-    DATABASES = {
-        "default": {
-            "ENGINE": config("DB_ENGINE", default="django.db.backends.sqlite3"),
-            "NAME": config("DB_NAME", default=BASE_DIR / "db.sqlite3"),
-            "USER": config("DB_USER", default=""),
-            "PASSWORD": config("DB_PASSWORD", default=""),
-            "HOST": config("DB_HOST", default=""),
-            "PORT": config("DB_PORT", default=""),
-        }
+    DATABASES["default"] = {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": ":memory:",
     }
+# Priority 2: File-based SQLite for CI/CD
+elif config("CI_CD", default="false", cast=bool):
+    DATABASES["default"] = {
+        "ENGINE": config("DB_ENGINE", default="django.db.backends.sqlite3"),
+        "NAME": config("DB_NAME", default=BASE_DIR / "db.sqlite3"),
+    }
+# Priority 3: PostgreSQL for development/production
 else:
+
     # Default database configuration (for development/production)
-    database_url = config(
-        "DATABASE_URL",
+    DATABASES["default"] = dj_database_url.config(
         default=f"postgresql://{config('DB_USER', default='usrname')}:{config('DB_PASSWORD', default='password')}@{config('DB_HOST', default='localhost')}:{config('DB_PORT', default='5432')}/{config('DB_NAME', default='dbname')}",
+        conn_max_age=600,
     )
-    DATABASES = {
-        "default": dj_database_url.config(
-            default=database_url,
-            conn_max_age=600,
-        )
-    }
-    db_config = dj_database_url.parse(database_url)
-
     # Añadir opciones SSL para conexiones seguras a Supabase
-    db_config["OPTIONS"] = {
-        "sslmode": config("DB_SSLMODE", default="require"),
-    }
-
-    DATABASES["default"].update(db_config)
+    if DATABASES["default"]["ENGINE"] == "django.db.backends.postgresql":
+        DATABASES["default"]["OPTIONS"] = {
+            "sslmode": config("DB_SSLMODE", default="require"),
+        }
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
