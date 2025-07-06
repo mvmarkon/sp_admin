@@ -1,4 +1,6 @@
 import os
+import sys
+import dj_database_url
 from pathlib import Path
 from datetime import timedelta
 from decouple import config
@@ -70,34 +72,57 @@ WSGI_APPLICATION = "sp_admin.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-import dj_database_url
 
-# Opción 1: Configuración tradicional (como respaldo)
-DATABASES = {
-    "default": {
-        "ENGINE": config("DB_ENGINE", default="django.db.backends.sqlite3"),
-        "NAME": config("DB_NAME", default=BASE_DIR / "db.sqlite3"),
-        "USER": config("DB_USER", default=""),
-        "PASSWORD": config("DB_PASSWORD", default=""),
-        "HOST": config("DB_HOST", default=""),
-        "PORT": config("DB_PORT", default=""),
+# # Opción 1: Configuración tradicional (como respaldo)
+# DATABASES = {
+#     "default": {
+#         "ENGINE": config("DB_ENGINE", default="django.db.backends.sqlite3"),
+#         "NAME": config("DB_NAME", default=BASE_DIR / "db.sqlite3"),
+#         "USER": config("DB_USER", default=""),
+#         "PASSWORD": config("DB_PASSWORD", default=""),
+#         "HOST": config("DB_HOST", default=""),
+#         "PORT": config("DB_PORT", default=""),
+#     }
+# }
+
+# # Opción 2: Usar dj-database-url para una configuración más robusta
+# # Si existe DATABASE_URL en las variables de entorno, esta configuración tiene prioridad
+# database_url = config(
+#     "DATABASE_URL",
+#     default=f"postgresql://{config('DB_USER')}:{config('DB_PASSWORD')}@{config('DB_HOST')}:{config('DB_PORT')}/{config('DB_NAME')}",
+# )
+# Database
+# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+DATABASES = {}
+
+# Override database configuration for tests
+# This block should be placed after the default DATABASES definition
+# and will be used when running tests.
+if (
+    "test" in sys.argv
+    or "test_coverage" in sys.argv
+    or config("CI_CD", default="false")
+):
+    DATABASES["default"] = {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": ":memory:",  # Use an in-memory SQLite database for tests
     }
-}
+else:
+    # Default database configuration (for development/production)
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=f"postgresql://{config('DB_USER')}:{config('DB_PASSWORD')}@{config('DB_HOST')}:{config('DB_PORT')}/{config('DB_NAME')}",
+            conn_max_age=600,
+        )
+    }
+    db_config = dj_database_url.parse(database_url)
 
-# Opción 2: Usar dj-database-url para una configuración más robusta
-# Si existe DATABASE_URL en las variables de entorno, esta configuración tiene prioridad
-database_url = config(
-    "DATABASE_URL",
-    default=f"postgresql://{config('DB_USER')}:{config('DB_PASSWORD')}@{config('DB_HOST')}:{config('DB_PORT')}/{config('DB_NAME')}",
-)
-db_config = dj_database_url.parse(database_url)
+    # Añadir opciones SSL para conexiones seguras a Supabase
+    db_config["OPTIONS"] = {
+        "sslmode": config("DB_SSLMODE", default="require"),
+    }
 
-# Añadir opciones SSL para conexiones seguras a Supabase
-db_config["OPTIONS"] = {
-    "sslmode": config("DB_SSLMODE", default="require"),
-}
-
-DATABASES["default"].update(db_config)
+    DATABASES["default"].update(db_config)
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -193,6 +218,13 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "https://cbglpcxtgsbugujghhhp.supabase.co",  # URL de tu proyecto Supabase
 ]
+
+# CORS Settings
+CORS_ALLOWED_ORIGINS = config(
+    "CORS_ALLOWED_ORIGINS",
+    default="http://localhost:3000,http://127.0.0.1:5173",
+    cast=lambda v: [s.strip() for s in v.split(",")],
+)
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = True
