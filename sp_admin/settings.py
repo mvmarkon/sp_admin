@@ -99,9 +99,11 @@ DATABASES = {}
 # This block should be placed after the default DATABASES definition
 # and will be used when running tests.
 if (
-    "test" in sys.argv
-    or "test_coverage" in sys.argv
-    or config("CI_CD", default="false")
+    len(sys.argv) > 1
+    and sys.argv[1] == "test"
+    or len(sys.argv) > 1
+    and sys.argv[1] == "test_coverage"
+    or config("CI_CD", default="false", cast=bool)
 ):
     DATABASES["default"] = {
         "ENGINE": "django.db.backends.sqlite3",
@@ -109,9 +111,10 @@ if (
     }
 else:
     # Default database configuration (for development/production)
+    database_url = f"postgresql://{config('DB_USER')}:{config('DB_PASSWORD')}@{config('DB_HOST')}:{config('DB_PORT')}/{config('DB_NAME')}"
     DATABASES = {
         "default": dj_database_url.config(
-            default=f"postgresql://{config('DB_USER')}:{config('DB_PASSWORD')}@{config('DB_HOST')}:{config('DB_PORT')}/{config('DB_NAME')}",
+            default=database_url,
             conn_max_age=600,
         )
     }
